@@ -1,8 +1,8 @@
 # VulnGuard: Intelligent Attack Surface Management (ASM) Simulator
 VulnGuard is a sophisticated Attack Surface Management (ASM) simulation platform designed to help security teams identify, track, and prioritize vulnerabilities across a diverse digital estate. Unlike traditional scanners, VulnGuard uses a context-aware risk engine to calculate the real-world impact of security flaws based on asset criticality and vulnerability age.
 ## 🚀 Core Features
-Multi-Vector Asset Management: Track Domains, IPs, Cloud Instances, and APIs with custom Business Criticality (1-5) weighting.
-Intelligent Risk Scoring: A dynamic engine that calculates risk using a time-decay and criticality algorithm.
+  #Multi-Vector Asset Management: Track Domains, IPs, Cloud Instances, and APIs with custom Business Criticality (1-5) weighting.
+  #Intelligent Risk Scoring: A dynamic engine that calculates risk using a time-decay and criticality algorithm.
 Automated Scan Simulator: Generates realistic vulnerability data (SQLi, XSS, etc.) to simulate a growing attack surface.
 Stateless JWT Security: Robust authentication using jjwt 0.12.6 with modern cryptographic signing.
 Executive Reporting: Instant PDF export of security postures using the iText library.
