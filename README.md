@@ -42,3 +42,29 @@ com.rohith.vulnguard
   ├── 🛡️ security/    # JWT Filter & Auth Logic
   ├── 🧠 service/     # Risk Scoring & Scan Logic
   └── 🗄️ repository/  # Database Access Layer
+
+----
+
+##🧪 Intelligent Risk Scoring
+VulnGuard calculates risk contextually rather than relying on static values. A "High" vulnerability on a Production Database is prioritized over the same bug on a Staging Server to ensure critical assets are addressed first.The Risk FormulaTo reflect real-world urgency, we use a dynamic time-decay factor:
+$$Risk = (Severity \times Criticality) \times (1.0 + (\lfloor days/7 \rfloor \times 0.1))
+$$Key Metrics:Severity: The inherent technical impact (mapped from Severity enum: Critical, High, Medium, Low).Criticality: The business value of the asset, rated on a scale of 1 to 5.
+Age Factor: A 10% penalty is automatically added to the score for every 7 days the vulnerability remains unpatched.
+---
+##🚦 Getting Started
+1. Database SetupEnsure your MySQL server is running, then create the project database:
+      SQLCREATE DATABASE vulnguard;
+
+2. ConfigurationUpdate your credentials in src/main/resources/application.properties:
+Properties
+      spring.datasource.username=YOUR_USERNAME
+      spring.datasource.password=YOUR_PASSWORD
+___
+3. Run the ApplicationExecute the following commands in your terminal:Bash# Build the project and skip tests for a fast start
+mvn clean install -DskipTests
+
+# Run the Spring Boot application
+mvn spring-boot:run
+📖 API DocumentationOnce the application has started, you can explore, test, and interact with the endpoints via the Swagger UI:👉 http://localhost:8080/swagger-ui.html
+##🤝 Contact
+Rohith Student, Computer Science & Engineering Department 
