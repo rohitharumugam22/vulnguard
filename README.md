@@ -45,25 +45,25 @@ Age Factor: A 10% penalty is automatically added to the score for every 7 days t
 
 ##🚦 Getting Started
 1. Database SetupEnsure your MySQL server is running, then create the project database:
-      SQLCREATE DATABASE vulnguard;
+      SQL
+               CREATE DATABASE vulnguard;
 
-2. ConfigurationUpdate your credentials in src/main/resources/application.properties:
+3. ConfigurationUpdate your credentials in src/main/resources/application.properties:
 Properties
-      spring.datasource.username=YOUR_USERNAME
-      spring.datasource.password=YOUR_PASSWORD
-   
-___
+   spring.datasource.username=YOUR_USERNAME
+   spring.datasource.password=YOUR_PASSWORD
 
 
-3. Run the ApplicationExecute the following commands in your terminal:Bash# Build the project and skip tests for a fast start
-mvn clean install -DskipTests
+4. Run the ApplicationExecute the following commands in your terminal:Bash# Build the project and skip tests for a fast start
+
+            mvn clean install -DskipTests
 
 # Run the Spring Boot application
-mvn spring-boot:run
+            mvn spring-boot:run
 
 📖 API Documentation
 Once the application has started, you can explore, test, and interact with the endpoints via the Swagger UI:
-http://localhost:8080/swagger-ui.html
+            http://localhost:8080/swagger-ui.html
 
 ##🤝 Contact
 Rohith A, Student, Computer Science & Engineering Department 
