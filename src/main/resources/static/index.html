@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>VulnGuard — Attack Surface Management</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0e1a;--surface:#0f1623;--surface2:#151d2e;--surface3:#1a2438;
+  --border:#1e2d45;--border2:#243550;
+  --text:#e2e8f0;--muted:#64748b;--muted2:#94a3b8;
+  --primary:#3b82f6;--primary-d:#2563eb;--primary-l:#60a5fa;
+  --success:#10b981;--warning:#f59e0b;--danger:#ef4444;
+  --orange:#f97316;--purple:#8b5cf6;--cyan:#06b6d4;
+  --r:8px;--r2:12px;--shadow:0 8px 32px rgba(0,0,0,.6);
+}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+button{cursor:pointer;font-family:inherit}
+input,select,textarea{font-family:inherit}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--surface)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+/* AUTH */
+#auth-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;
+  background:radial-gradient(ellipse 80% 60% at 50% -10%,rgba(59,130,246,.15),transparent 70%),
+             radial-gradient(ellipse 40% 30% at 80% 80%,rgba(139,92,246,.1),transparent 60%),var(--bg)}
+.auth-card{background:var(--surface);border:1px solid var(--border2);border-radius:20px;padding:44px;width:100%;max-width:440px;box-shadow:var(--shadow)}
+.auth-brand{text-align:center;margin-bottom:28px}
+.auth-logo{width:60px;height:60px;margin:0 auto 14px;background:linear-gradient(135deg,#1d4ed8,#7c3aed);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:28px;box-shadow:0 8px 24px rgba(59,130,246,.3)}
+.auth-brand h1{font-size:26px;font-weight:800;background:linear-gradient(135deg,#60a5fa,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.auth-brand p{color:var(--muted2);font-size:13px;margin-top:4px}
+.auth-tabs{display:flex;background:var(--surface2);border-radius:10px;padding:4px;margin-bottom:24px}
+.auth-tab{flex:1;padding:9px;border:none;background:none;color:var(--muted2);border-radius:8px;font-size:14px;font-weight:500;transition:.2s}
+.auth-tab.active{background:var(--surface3);color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-size:12px;font-weight:600;color:var(--muted2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.form-input{width:100%;padding:11px 14px;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-size:14px;transition:.2s;outline:none}
+.form-input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(59,130,246,.15)}
+.auth-error{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#fca5a5;border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:14px;display:none}
+.auth-submit{width:100%;padding:12px;background:linear-gradient(135deg,var(--primary),var(--purple));border:none;border-radius:8px;color:#fff;font-size:15px;font-weight:600;margin-top:4px;transition:.2s}
+.auth-submit:hover{opacity:.9;transform:translateY(-1px)}
+
+/* APP SHELL */
+#app-screen{display:none;height:100vh;overflow:hidden}
+#app-screen.flex{display:flex}
+
+/* SIDEBAR */
+.sidebar{width:240px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;height:100vh;overflow-y:auto}
+.sb-brand{padding:20px 16px 16px;border-bottom:1px solid var(--border)}
+.sb-logo{display:flex;align-items:center;gap:10px}
+.sb-logo-icon{width:36px;height:36px;background:linear-gradient(135deg,#1d4ed8,#7c3aed);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.sb-logo-text{font-size:17px;font-weight:800;background:linear-gradient(135deg,#60a5fa,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.sb-logo-sub{font-size:10px;color:var(--muted);margin-top:1px}
+.sb-section{padding:12px 10px 4px;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border:none;background:none;color:var(--muted2);border-radius:8px;margin:1px 6px;width:calc(100% - 12px);font-size:13px;font-weight:500;transition:.15s;text-align:left}
+.nav-item:hover{background:var(--surface2);color:var(--text)}
+.nav-item.active{background:linear-gradient(135deg,rgba(59,130,246,.15),rgba(139,92,246,.1));color:var(--primary-l);border:1px solid rgba(59,130,246,.2)}
+.nav-ico{font-size:16px;width:20px;text-align:center;flex-shrink:0}
+.nav-badge{background:var(--danger);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:99px;margin-left:auto;display:none}
+.sb-bottom{margin-top:auto;padding:12px 8px;border-top:1px solid var(--border)}
+.user-card{display:flex;align-items:center;gap:10px;padding:10px 8px;border-radius:10px;background:var(--surface2);margin-bottom:8px}
+.user-av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#1d4ed8,#7c3aed);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#fff;flex-shrink:0}
+.user-info{overflow:hidden}
+.user-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.user-role{font-size:11px;color:var(--success)}
+.sb-actions{display:flex;gap:6px}
+.sb-btn{flex:1;padding:8px;border:1px solid var(--border2);background:var(--surface2);color:var(--muted2);border-radius:8px;font-size:12px;transition:.15s}
+.sb-btn:hover{background:var(--surface3);color:var(--text)}
+
+/* MAIN */
+.main{flex:1;overflow-y:auto;display:flex;flex-direction:column;min-width:0}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;position:sticky;top:0;z-index:10}
+.topbar-left{display:flex;align-items:center;gap:10px}
+.page-icon{font-size:22px}
+.page-title{font-size:20px;font-weight:700}
+.topbar-right{display:flex;align-items:center;gap:8px}
+.api-dot-wrap{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--success);padding:5px 12px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);border-radius:99px}
+.api-dot{width:6px;height:6px;border-radius:50%;background:var(--success);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.content{padding:24px;flex:1}
+
+/* CARDS */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);padding:20px;margin-bottom:20px}
+.card-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;gap:12px}
+.card-hdr h3{font-size:14px;font-weight:700;display:flex;align-items:center;gap:7px}
+.card-hdr-sub{font-size:11px;color:var(--muted2);margin-top:3px}
+
+/* STAT GRID */
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px}
+@media(max-width:1100px){.stat-grid{grid-template-columns:repeat(2,1fr)}}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);padding:20px;position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--r2) var(--r2) 0 0}
+.stat-card.primary::before{background:linear-gradient(90deg,#3b82f6,#8b5cf6)}
+.stat-card.danger::before{background:linear-gradient(90deg,#ef4444,#f97316)}
+.stat-card.warning::before{background:linear-gradient(90deg,#f59e0b,#f97316)}
+.stat-card.success::before{background:linear-gradient(90deg,#10b981,#06b6d4)}
+.stat-icon-wrap{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:12px}
+.bg-blue{background:rgba(59,130,246,.15)}.bg-red{background:rgba(239,68,68,.15)}
+.bg-orange{background:rgba(245,158,11,.15)}.bg-green{background:rgba(16,185,129,.15)}
+.stat-value{font-size:28px;font-weight:800;line-height:1;margin-bottom:4px}
+.stat-label{font-size:11px;font-weight:600;color:var(--muted2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.stat-sub{font-size:11px;color:var(--muted)}
+
+/* GRIDS */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+@media(max-width:900px){.g2{grid-template-columns:1fr}}
+.chart-wrap{position:relative}
+
+/* TABLE */
+.table-scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{padding:10px 12px;text-align:left;font-size:11px;font-weight:600;color:var(--muted2);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.02)}
+.td-muted{color:var(--muted2);font-size:12px}
+.t-actions{display:flex;gap:5px}
+.loading-cell{text-align:center;padding:40px;color:var(--muted)}
+.empty-state{text-align:center;padding:40px 20px;color:var(--muted)}
+.empty-state .ei{font-size:36px;display:block;margin-bottom:10px}
+.empty-state h3{font-size:15px;color:var(--muted2);margin-bottom:6px}
+.empty-state p{font-size:13px}
+
+/* TOOLBAR */
+.toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.search-wrap{position:relative;flex:1;min-width:180px}
+.search-ico{position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:14px}
+.search-input{width:100%;padding:9px 12px 9px 32px;background:var(--surface);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-size:13px;outline:none;transition:.2s}
+.search-input:focus{border-color:var(--primary)}
+.filter-pills{display:flex;gap:4px;flex-wrap:wrap}
+.pill{padding:6px 12px;border:1px solid var(--border2);background:var(--surface);color:var(--muted2);border-radius:99px;font-size:12px;font-weight:500;transition:.15s}
+.pill:hover{background:var(--surface2);color:var(--text)}
+.pill.active{background:rgba(59,130,246,.15);border-color:rgba(59,130,246,.4);color:var(--primary-l)}
+
+/* BUTTONS */
+.btn{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;border:none;transition:.15s;display:inline-flex;align-items:center;gap:6px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-primary{background:var(--primary);color:#fff}.btn-primary:hover:not(:disabled){background:var(--primary-d)}
+.btn-secondary{background:var(--surface2);border:1px solid var(--border2);color:var(--text)}.btn-secondary:hover{background:var(--surface3)}
+.btn-success{background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);color:var(--success)}.btn-success:hover{background:rgba(16,185,129,.25)}
+.btn-danger{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);color:var(--danger)}.btn-danger:hover{background:rgba(239,68,68,.25)}
+.btn-warning{background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);color:var(--warning)}.btn-warning:hover{background:rgba(245,158,11,.25)}
+.btn-ghost{background:none;border:1px solid var(--border2);color:var(--muted2)}.btn-ghost:hover{background:var(--surface2);color:var(--text)}
+.btn-sm{padding:6px 12px;font-size:12px}.btn-xs{padding:4px 8px;font-size:11px}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600}
+.b-critical{background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.3)}
+.b-high{background:rgba(249,115,22,.15);color:#fb923c;border:1px solid rgba(249,115,22,.3)}
+.b-medium{background:rgba(245,158,11,.15);color:#fbbf24;border:1px solid rgba(245,158,11,.3)}
+.b-low{background:rgba(16,185,129,.15);color:#34d399;border:1px solid rgba(16,185,129,.3)}
+.b-info{background:rgba(100,116,139,.15);color:#94a3b8;border:1px solid rgba(100,116,139,.3)}
+.b-none{background:rgba(100,116,139,.1);color:var(--muted2)}
+.b-green{background:rgba(16,185,129,.12);color:#34d399;border:1px solid rgba(16,185,129,.25)}
+.b-red{background:rgba(239,68,68,.12);color:#f87171;border:1px solid rgba(239,68,68,.25)}
+.b-blue{background:rgba(59,130,246,.12);color:#60a5fa;border:1px solid rgba(59,130,246,.25)}
+.b-purple{background:rgba(139,92,246,.12);color:#a78bfa;border:1px solid rgba(139,92,246,.25)}
+.b-cyan{background:rgba(6,182,212,.12);color:#22d3ee;border:1px solid rgba(6,182,212,.25)}
+.b-orange{background:rgba(249,115,22,.12);color:#fb923c;border:1px solid rgba(249,115,22,.25)}
+
+/* RISK CHIP */
+.rs-chip{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700}
+.rs-crit{background:rgba(239,68,68,.15);color:#f87171}
+.rs-high{background:rgba(249,115,22,.15);color:#fb923c}
+.rs-med{background:rgba(245,158,11,.15);color:#fbbf24}
+.rs-low{background:rgba(16,185,129,.15);color:#34d399}
+
+/* CRIT BAR */
+.c-bar{display:flex;align-items:center;gap:3px}
+.c-dot{width:9px;height:9px;border-radius:3px;background:var(--border2)}
+.c-n{font-size:11px;color:var(--muted);margin-left:4px}
+
+/* MODAL */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.modal-bg.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:16px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow);margin:16px}
+.modal-hdr{display:flex;align-items:center;justify-content:space-between;padding:20px 24px 0}
+.modal-hdr h2{font-size:17px;font-weight:700}
+.modal-close{background:none;border:none;color:var(--muted2);font-size:20px;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center}
+.modal-close:hover{background:var(--surface2);color:var(--text)}
+.modal-body{padding:20px 24px 0}
+.modal-footer{display:flex;gap:8px;justify-content:flex-end;padding:16px 24px 24px}
+
+/* SPINNER */
+.spinner{width:20px;height:20px;border:2px solid var(--border2);border-top-color:var(--primary);border-radius:50%;animation:spin .7s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* SCAN */
+.scan-pulse{display:flex;align-items:center;gap:12px;color:var(--primary-l);font-size:14px}
+.scan-dots span{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--primary);animation:bounce .8s ease infinite}
+.scan-dots span:nth-child(2){animation-delay:.15s}.scan-dots span:nth-child(3){animation-delay:.3s}
+@keyframes bounce{0%,80%,100%{transform:scale(1)}40%{transform:scale(1.4)}}
+
+/* PANEL */
+.panel-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:50;backdrop-filter:blur(2px)}
+.detail-panel{position:fixed;top:0;right:0;width:420px;height:100vh;background:var(--surface);border-left:1px solid var(--border2);z-index:60;transform:translateX(100%);transition:.3s ease;overflow-y:auto;box-shadow:-8px 0 32px rgba(0,0,0,.4)}
+.detail-panel.open{transform:none}
+.panel-hdr{display:flex;align-items:center;justify-content:space-between;padding:20px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface)}
+.panel-body{padding:20px}
+.panel-field{margin-bottom:16px}
+.panel-field label{display:block;font-size:11px;font-weight:600;color:var(--muted2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+.panel-field p{font-size:13px;color:var(--text);line-height:1.6}
+
+/* JSON BG */
+.json-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.json-bg.open{display:flex}
+.json-box{background:var(--surface);border:1px solid var(--border2);border-radius:14px;width:90%;max-width:760px;max-height:85vh;display:flex;flex-direction:column;box-shadow:var(--shadow)}
+.json-hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border)}
+.json-pre{flex:1;overflow:auto;padding:16px 20px;font-family:'Courier New',monospace;font-size:12px;color:#7dd3fc;white-space:pre;line-height:1.5}
+
+/* TOAST */
+#tc{position:fixed;bottom:20px;right:20px;z-index:999;display:flex;flex-direction:column;gap:8px}
+.toast{display:flex;align-items:center;gap:8px;padding:12px 16px;border-radius:10px;font-size:13px;font-weight:500;animation:tIn .3s ease;max-width:360px;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.t-success{background:rgba(16,185,129,.9);color:#fff}.t-error{background:rgba(239,68,68,.9);color:#fff}
+.t-info{background:rgba(59,130,246,.9);color:#fff}.t-warning{background:rgba(245,158,11,.9);color:#000}
+@keyframes tIn{from{transform:translateX(100%);opacity:0}to{transform:none;opacity:1}}
+</style>
+</head>
+<body>
+
+<!-- AUTH -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-brand">
+      <div class="auth-logo">🛡️</div>
+      <h1>VulnGuard</h1>
+      <p>Attack Surface Management</p>
+    </div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchTab('login')">Sign In</button>
+      <button class="auth-tab" onclick="switchTab('register')">Register</button>
+    </div>
+    <div id="auth-err" class="auth-error"></div>
+    <div id="login-form">
+      <div class="form-group"><label>Username</label><input class="form-input" id="lu" type="text" placeholder="Enter username" onkeydown="if(event.key==='Enter')doLogin()"/></div>
+      <div class="form-group"><label>Password</label><input class="form-input" id="lp" type="password" placeholder="Enter password" onkeydown="if(event.key==='Enter')doLogin()"/></div>
+      <button class="auth-submit" onclick="doLogin()">Sign In →</button>
+    </div>
+    <div id="register-form" style="display:none">
+      <div class="form-group"><label>Username</label><input class="form-input" id="ru" type="text" placeholder="Choose username" onkeydown="if(event.key==='Enter')doRegister()"/></div>
+      <div class="form-group"><label>Email</label><input class="form-input" id="re" type="email" placeholder="your@email.com" onkeydown="if(event.key==='Enter')doRegister()"/></div>
+      <div class="form-group"><label>Password</label><input class="form-input" id="rp" type="password" placeholder="Min 6 characters" onkeydown="if(event.key==='Enter')doRegister()"/></div>
+      <button class="auth-submit" onclick="doRegister()">Create Account →</button>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app-screen">
+  <nav class="sidebar">
+    <div class="sb-brand">
+      <div class="sb-logo">
+        <div class="sb-logo-icon">🛡️</div>
+        <div><div class="sb-logo-text">VulnGuard</div><div class="sb-logo-sub">v1.0 — Enhanced</div></div>
+      </div>
+    </div>
+    <div class="sb-section">Overview</div>
+    <button class="nav-item active" id="nav-dashboard" onclick="showSection('dashboard')"><span class="nav-ico">📊</span>Dashboard</button>
+    <div class="sb-section">Security</div>
+    <button class="nav-item" id="nav-assets" onclick="showSection('assets')"><span class="nav-ico">🖥️</span>Assets</button>
+    <button class="nav-item" id="nav-scans" onclick="showSection('scans')"><span class="nav-ico">⚡</span>Scans &amp; Scanner</button>
+    <button class="nav-item" id="nav-vulns" onclick="showSection('vulns')"><span class="nav-ico">🔴</span>Vulnerabilities<span class="nav-badge" id="open-badge">0</span></button>
+    <div class="sb-section">Output</div>
+    <button class="nav-item" id="nav-reports" onclick="showSection('reports')"><span class="nav-ico">📋</span>Reports &amp; Export</button>
+    <div class="sb-bottom">
+      <div class="user-card">
+        <div class="user-av" id="user-av">U</div>
+        <div class="user-info"><div class="user-name" id="user-name">User</div><div class="user-role">● Online · Analyst</div></div>
+      </div>
+      <div class="sb-actions">
+        <button class="sb-btn" onclick="window.open('/swagger-ui.html','_blank')">API Docs</button>
+        <button class="sb-btn" onclick="doLogout()">Logout</button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-left"><span class="page-icon" id="page-icon">📊</span><span class="page-title" id="page-title">Dashboard</span></div>
+      <div class="topbar-right">
+        <div class="api-dot-wrap"><div class="api-dot"></div>API Online</div>
+        <button class="btn btn-secondary btn-sm" onclick="refreshCurrent()">🔄 Refresh</button>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- DASHBOARD -->
+      <div id="section-dashboard">
+        <div class="stat-grid" id="stat-grid">
+          <div class="stat-card primary"><div style="display:flex;align-items:center;justify-content:center;height:80px"><div class="spinner"></div></div></div>
+          <div class="stat-card danger"><div style="display:flex;align-items:center;justify-content:center;height:80px"><div class="spinner"></div></div></div>
+          <div class="stat-card warning"><div style="display:flex;align-items:center;justify-content:center;height:80px"><div class="spinner"></div></div></div>
+          <div class="stat-card success"><div style="display:flex;align-items:center;justify-content:center;height:80px"><div class="spinner"></div></div></div>
+        </div>
+        <div class="g2">
+          <div class="card">
+            <div class="card-hdr"><div><h3>🎯 Open by Severity</h3><div class="card-hdr-sub">Current vulnerability distribution</div></div></div>
+            <div id="sev-wrap"><div class="chart-wrap" style="height:200px"><canvas id="sev-chart"></canvas></div><div id="sev-legend" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:14px"></div></div>
+          </div>
+          <div class="card">
+            <div class="card-hdr"><h3>🔥 Top Risk Vulnerabilities</h3><button class="btn btn-ghost btn-sm" onclick="showSection('vulns')">View All →</button></div>
+            <div class="table-scroll" style="max-height:260px;overflow-y:auto">
+              <table><thead><tr><th>CVE ID</th><th>Title</th><th>Sev</th><th>Risk</th></tr></thead>
+              <tbody id="top-risks-body"><tr><td class="loading-cell" colspan="4"><div class="spinner"></div></td></tr></tbody></table>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hdr"><h3>📈 Discovery Trend — Last 14 Days</h3></div>
+          <div id="trend-wrap"><div class="chart-wrap" style="height:160px"><canvas id="trend-chart"></canvas></div></div>
+        </div>
+        <div class="card">
+          <div class="card-hdr"><h3>🗺️ Asset Risk Map</h3><button class="btn btn-ghost btn-sm" onclick="showSection('assets')">Manage →</button></div>
+          <div class="table-scroll">
+            <table><thead><tr><th>Asset</th><th>Type</th><th>Criticality</th><th>Open Vulns</th><th>Top Severity</th><th>Max Risk</th><th>Last Scanned</th><th></th></tr></thead>
+            <tbody id="risk-map-body"><tr><td class="loading-cell" colspan="8"><div class="spinner"></div></td></tr></tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ASSETS -->
+      <div id="section-assets" style="display:none">
+        <div class="toolbar">
+          <div class="search-wrap"><span class="search-ico">🔍</span><input class="search-input" type="text" id="asset-search" placeholder="Search assets..." oninput="filterAssets()"/></div>
+          <div class="filter-pills" id="asset-pills">
+            <button class="pill active" onclick="setAssetFilter('ALL',this)">All</button>
+            <button class="pill" onclick="setAssetFilter('DOMAIN',this)">Domain</button>
+            <button class="pill" onclick="setAssetFilter('IP_ADDRESS',this)">IP</button>
+            <button class="pill" onclick="setAssetFilter('API_ENDPOINT',this)">API</button>
+            <button class="pill" onclick="setAssetFilter('CLOUD_RESOURCE',this)">Cloud</button>
+            <button class="pill" onclick="setAssetFilter('WEB_APPLICATION',this)">Web App</button>
+          </div>
+          <div style="margin-left:auto;display:flex;gap:8px">
+            <button class="btn btn-secondary btn-sm" onclick="loadAssets()">🔄</button>
+            <button class="btn btn-primary" onclick="openAssetModal(null)">➕ Add Asset</button>
+          </div>
+        </div>
+        <div class="card" style="padding:0">
+          <div class="table-scroll">
+            <table><thead><tr><th>Name</th><th>Type</th><th>Address</th><th>Criticality</th><th>Open Vulns</th><th>Status</th><th>Last Scanned</th><th style="width:120px">Actions</th></tr></thead>
+            <tbody id="assets-body"><tr><td class="loading-cell" colspan="8"><div class="spinner"></div></td></tr></tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- SCANS -->
+      <div id="section-scans" style="display:none">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+          <div class="card" style="margin-bottom:0">
+            <div class="card-hdr"><h3>⚡ Scan Single Asset</h3></div>
+            <select id="scan-select" style="width:100%;padding:10px;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-size:13px;margin-bottom:12px;outline:none"><option value="">Loading assets...</option></select>
+            <button class="btn btn-primary" style="width:100%" onclick="scanSelected()">⚡ Scan Asset</button>
+          </div>
+          <div class="card" style="margin-bottom:0">
+            <div class="card-hdr"><h3>🚀 Batch Scan All</h3></div>
+            <p style="font-size:13px;color:var(--muted2);margin-bottom:12px">Scan every active asset and aggregate results.</p>
+            <button class="btn btn-warning" id="batch-btn" style="width:100%" onclick="batchScan()">⚡ Scan All Active Assets</button>
+          </div>
+        </div>
+        <div class="card" id="scan-result-card" style="background:var(--surface2)">
+          <div style="font-size:13px;color:var(--muted2)">Run a scan above to see results here.</div>
+        </div>
+        <div class="card" style="padding:0">
+          <div class="card-hdr" style="padding:16px 20px 0"><h3>📋 Open Vulnerabilities Feed</h3></div>
+          <div class="table-scroll">
+            <table><thead><tr><th>CVE ID</th><th>Title</th><th>Severity</th><th>CVSS</th><th>Asset</th><th>Risk</th><th>Age</th><th>Actions</th></tr></thead>
+            <tbody id="feed-body"><tr><td class="loading-cell" colspan="8"><div class="spinner"></div></td></tr></tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- VULNERABILITIES -->
+      <div id="section-vulns" style="display:none">
+        <div class="toolbar">
+          <div class="search-wrap"><span class="search-ico">🔍</span><input class="search-input" type="text" id="vuln-search" placeholder="Search CVE, title, asset..." oninput="filterVulns()"/></div>
+          <div class="filter-pills">
+            <button class="pill active" onclick="setSevFilter('ALL',this)">All</button>
+            <button class="pill" onclick="setSevFilter('CRITICAL',this)" style="color:#f87171">Critical</button>
+            <button class="pill" onclick="setSevFilter('HIGH',this)" style="color:#fb923c">High</button>
+            <button class="pill" onclick="setSevFilter('MEDIUM',this)" style="color:#fbbf24">Medium</button>
+            <button class="pill" onclick="setSevFilter('LOW',this)" style="color:#34d399">Low</button>
+            <button class="pill" onclick="setSevFilter('INFO',this)" style="color:#94a3b8">Info</button>
+          </div>
+          <button class="btn btn-secondary btn-sm" style="margin-left:auto" onclick="loadVulns()">🔄</button>
+        </div>
+        <div class="card" style="padding:0">
+          <div style="padding:12px 16px;border-bottom:1px solid var(--border);font-size:12px;color:var(--muted2)" id="vuln-count">Loading...</div>
+          <div class="table-scroll">
+            <table><thead><tr><th>CVE ID</th><th>Title</th><th>Severity</th><th>CVSS</th><th>Asset</th><th>Risk</th><th>Age</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="vulns-body"><tr><td class="loading-cell" colspan="9"><div class="spinner"></div></td></tr></tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- REPORTS -->
+      <div id="section-reports" style="display:none">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px">
+          <div class="card" style="margin-bottom:0;text-align:center">
+            <div style="font-size:36px;margin-bottom:10px">📄</div>
+            <h3 style="font-size:14px;margin-bottom:6px">JSON Report</h3>
+            <p style="font-size:12px;color:var(--muted2);margin-bottom:14px">Full structured report with all assets and vulnerabilities.</p>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-primary btn-sm" style="flex:1" onclick="dlJson()">⬇ Download</button>
+              <button class="btn btn-ghost btn-sm" onclick="previewJson()">👁 Preview</button>
+            </div>
+          </div>
+          <div class="card" style="margin-bottom:0;text-align:center">
+            <div style="font-size:36px;margin-bottom:10px">📑</div>
+            <h3 style="font-size:14px;margin-bottom:6px">PDF Report</h3>
+            <p style="font-size:12px;color:var(--muted2);margin-bottom:14px">Executive summary with top risks and per-asset breakdown.</p>
+            <button class="btn btn-danger btn-sm" style="width:100%" onclick="dlPdf()">⬇ Download PDF</button>
+          </div>
+          <div class="card" style="margin-bottom:0;text-align:center">
+            <div style="font-size:36px;margin-bottom:10px">🔄</div>
+            <h3 style="font-size:14px;margin-bottom:6px">Live Snapshot</h3>
+            <p style="font-size:12px;color:var(--muted2);margin-bottom:14px">Refresh the live stats preview below.</p>
+            <button class="btn btn-secondary btn-sm" style="width:100%" onclick="loadReportPreview()">🔄 Refresh</button>
+          </div>
+        </div>
+        <div class="card"><div class="card-hdr"><h3>📊 Live Stats Snapshot</h3></div><div id="report-preview"></div></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ASSET MODAL -->
+<div class="modal-bg" id="asset-modal">
+  <div class="modal">
+    <div class="modal-hdr"><h2 id="modal-title">Add Asset</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="m-id"/>
+      <div class="form-group"><label>Name *</label><input class="form-input" id="m-name" placeholder="e.g. Production API"/></div>
+      <div class="form-group"><label>Type *</label>
+        <select class="form-input" id="m-type">
+          <option value="DOMAIN">Domain</option><option value="IP_ADDRESS">IP Address</option>
+          <option value="API_ENDPOINT">API Endpoint</option><option value="CLOUD_RESOURCE">Cloud Resource</option>
+          <option value="WEB_APPLICATION">Web Application</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Address *</label><input class="form-input" id="m-addr" placeholder="e.g. api.example.com or 192.168.1.1"/></div>
+      <div class="form-group"><label>Description</label><input class="form-input" id="m-desc" placeholder="Optional"/></div>
+      <div class="form-group"><label>Criticality *</label>
+        <select class="form-input" id="m-crit">
+          <option value="1">1 — Low</option><option value="2">2 — Minor</option><option value="3" selected>3 — Moderate</option>
+          <option value="4">4 — High</option><option value="5">5 — Critical</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveAsset()">Save Asset</button>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL PANEL -->
+<div class="panel-backdrop" id="panel-backdrop" onclick="closePanel()"></div>
+<div class="detail-panel" id="detail-panel">
+  <div class="panel-hdr"><h3 style="font-size:15px;font-weight:700">Vulnerability Detail</h3><button class="modal-close" onclick="closePanel()">✕</button></div>
+  <div class="panel-body" id="panel-body"></div>
+</div>
+
+<!-- JSON PREVIEW -->
+<div class="json-bg" id="json-bg">
+  <div class="json-box">
+    <div class="json-hdr"><span style="font-weight:600">JSON Report Preview</span><button class="btn btn-ghost btn-sm" onclick="document.getElementById('json-bg').classList.remove('open')">✕ Close</button></div>
+    <pre class="json-pre" id="json-pre">Loading…</pre>
+  </div>
+</div>
+
+<div id="tc"></div>
+
+<script>
+// ─── STATE ────────────────────────────────────────────
+let token = localStorage.getItem('vg_token')||'';
+let currentUser = localStorage.getItem('vg_user')||'';
+let currentSection = 'dashboard';
+let allAssets = [], allVulns = [];
+let assetTypeFilter = 'ALL', sevFilter = 'ALL';
+let charts = {};
+
+window.addEventListener('DOMContentLoaded',()=>{ if(token&&currentUser) enterApp(); });
+
+// ─── API ──────────────────────────────────────────────
+async function api(method, path, body) {
+  const hdr = {'Content-Type':'application/json'};
+  if(token) hdr['Authorization'] = 'Bearer '+token;
+  const opts = {method, headers:hdr};
+  if(body) opts.body = JSON.stringify(body);
+  let res;
+  try { res = await fetch(path,opts); }
+  catch(e) { throw new Error('Network error — is the server running?'); }
+  if(res.status===401){ toast('Session expired — please log in again','warning'); doLogout(); return null; }
+  if(res.status===403){ throw new Error('Access denied (403). Try logging out and back in.'); }
+  if(res.status===204) return null;
+  const ct = res.headers.get('content-type')||'';
+  if(ct.includes('pdf')) return res.blob();
+  const data = await res.json().catch(()=>null);
+  if(!res.ok) throw new Error(data?.message||data?.error||`HTTP ${res.status}`);
+  return data;
+}
+
+// ─── AUTH ─────────────────────────────────────────────
+function switchTab(tab) {
+  document.querySelectorAll('.auth-tab').forEach((t,i)=>t.classList.toggle('active',(tab==='login'&&i===0)||(tab==='register'&&i===1)));
+  document.getElementById('login-form').style.display = tab==='login'?'':'none';
+  document.getElementById('register-form').style.display = tab==='register'?'':'none';
+  setAE('');
+}
+function setAE(msg){ const e=document.getElementById('auth-err'); e.textContent=msg; e.style.display=msg?'':'none'; }
+async function doLogin() {
+  const username=document.getElementById('lu').value.trim(), password=document.getElementById('lp').value;
+  if(!username||!password){setAE('Enter username and password.');return;}
+  try{const d=await api('POST','/api/auth/login',{username,password}); if(!d)return; saveAuth(d); enterApp();}
+  catch(e){setAE(e.message||'Login failed.');}
+}
+async function doRegister() {
+  const username=document.getElementById('ru').value.trim(), email=document.getElementById('re').value.trim(), password=document.getElementById('rp').value;
+  if(!username||!email||!password){setAE('All fields required.');return;}
+  try{const d=await api('POST','/api/auth/register',{username,email,password}); if(!d)return; saveAuth(d); enterApp();}
+  catch(e){setAE(e.message||'Registration failed.');}
+}
+function saveAuth(d){ token=d.token; currentUser=d.username; localStorage.setItem('vg_token',token); localStorage.setItem('vg_user',currentUser); }
+function enterApp() {
+  document.getElementById('auth-screen').style.display='none';
+  document.getElementById('app-screen').classList.add('flex');
+  document.getElementById('user-name').textContent=currentUser;
+  document.getElementById('user-av').textContent=currentUser[0].toUpperCase();
+  showSection('dashboard');
+}
+function doLogout() {
+  localStorage.removeItem('vg_token'); localStorage.removeItem('vg_user');
+  token=''; currentUser='';
+  document.getElementById('auth-screen').style.display='';
+  document.getElementById('app-screen').classList.remove('flex');
+  destroyCharts();
+}
+
+// ─── NAV ──────────────────────────────────────────────
+const SECS = {dashboard:{title:'Dashboard',icon:'📊'},assets:{title:'Assets',icon:'🖥️'},scans:{title:'Scans & Scanner',icon:'⚡'},vulns:{title:'Vulnerabilities',icon:'🔴'},reports:{title:'Reports & Export',icon:'📋'}};
+function showSection(name) {
+  currentSection=name;
+  Object.keys(SECS).forEach(s=>{
+    document.getElementById('section-'+s).style.display=s===name?'':'none';
+    document.getElementById('nav-'+s)?.classList.toggle('active',s===name);
+  });
+  document.getElementById('page-title').textContent=SECS[name].title;
+  document.getElementById('page-icon').textContent=SECS[name].icon;
+  if(name==='dashboard') loadDashboard();
+  if(name==='assets')    loadAssets();
+  if(name==='scans')     {loadFeed(); populateSelect();}
+  if(name==='vulns')     loadVulns();
+  if(name==='reports')   loadReportPreview();
+}
+function refreshCurrent(){showSection(currentSection);}
+
+// ─── DASHBOARD ────────────────────────────────────────
+async function loadDashboard() {
+  // Reset all spinners
+  document.getElementById('stat-grid').innerHTML = ['primary','danger','warning','success']
+    .map(t=>`<div class="stat-card ${t}"><div style="display:flex;align-items:center;justify-content:center;height:80px"><div class="spinner"></div></div></div>`).join('');
+  document.getElementById('top-risks-body').innerHTML='<tr><td class="loading-cell" colspan="4"><div class="spinner"></div></td></tr>';
+  document.getElementById('risk-map-body').innerHTML='<tr><td class="loading-cell" colspan="8"><div class="spinner"></div></td></tr>';
+
+  const [dashR, trendR, riskMapR] = await Promise.allSettled([
+    api('GET','/api/dashboard'),
+    api('GET','/api/dashboard/trend'),
+    api('GET','/api/dashboard/asset-risks')
+  ]);
+
+  // Main stats
+  if(dashR.status==='fulfilled' && dashR.value) {
+    const d=dashR.value;
+    renderStats(d);
+    renderSevChart(d.severityBreakdown||{});
+    renderTopRisks(d.top10Risks||[]);
+    updateBadge(d.openVulnerabilities||0);
+  } else {
+    const err=dashR.reason?.message||'Server error';
+    document.getElementById('stat-grid').innerHTML=
+      `<div class="stat-card danger" style="grid-column:1/-1;text-align:center;padding:28px">
+        <div style="font-size:28px;margin-bottom:8px">⚠️</div>
+        <div style="font-weight:600;margin-bottom:4px">Dashboard failed to load</div>
+        <div style="font-size:12px;color:var(--muted2)">${esc(err)}</div>
+        <button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="loadDashboard()">Retry</button>
+      </div>`;
+    document.getElementById('top-risks-body').innerHTML=`<tr><td class="loading-cell" colspan="4" style="color:var(--danger)">⚠️ ${esc(err)}</td></tr>`;
+    toast('Dashboard error: '+err,'error');
+  }
+
+  // Trend chart (optional)
+  if(trendR.status==='fulfilled' && trendR.value) {
+    renderTrendChart(trendR.value);
+  } else {
+    document.getElementById('trend-wrap').innerHTML='<div class="empty-state" style="padding:24px"><span class="ei">📈</span><p>Trend data will appear after running scans</p></div>';
+  }
+
+  // Asset risk map (optional)
+  if(riskMapR.status==='fulfilled' && riskMapR.value) {
+    renderRiskMap(riskMapR.value);
+  } else {
+    document.getElementById('risk-map-body').innerHTML='<tr><td class="loading-cell" colspan="8">Add assets and run scans to see risk data</td></tr>';
+  }
+}
+
+function renderStats(d) {
+  document.getElementById('stat-grid').innerHTML=
+    sCard('primary','🖥️','bg-blue','Total Assets',d.totalAssets??0,`${d.activeAssets??0} active`,`${d.assetsNeverScanned??0} unscanned`)+
+    sCard('danger','🔴','bg-red','Open Vulns',d.openVulnerabilities??0,`${d.criticalCount??0} critical`,`${d.highCount??0} high`)+
+    sCard('warning','⚠️','bg-orange','Avg Risk Score',d.averageRiskScore??0,`Max: ${d.maxRiskScore??0}`,`${d.mediumCount??0} medium`)+
+    sCard('success','✅','bg-green','Remediation Rate',(d.remediationRate??0)+'%',`${d.remediatedVulnerabilities??0} resolved`,`of ${d.totalVulnerabilities??0} total`);
+}
+function sCard(type,icon,iconBg,label,value,s1,s2){
+  return `<div class="stat-card ${type}"><div class="stat-icon-wrap ${iconBg}">${icon}</div><div class="stat-value">${value}</div><div class="stat-label">${label}</div><div class="stat-sub">${s1} · ${s2}</div></div>`;
+}
+
+function renderSevChart(bd) {
+  const C={CRITICAL:'#ef4444',HIGH:'#f97316',MEDIUM:'#f59e0b',LOW:'#10b981',INFO:'#64748b'};
+  const labels=Object.keys(bd), vals=Object.values(bd), colors=labels.map(l=>C[l]||'#64748b');
+  dChart('sev-chart');
+  if(!labels.length){
+    document.getElementById('sev-wrap').innerHTML='<div class="empty-state"><span class="ei">✅</span><p>No open vulnerabilities</p></div>';
+    return;
+  }
+  // Rebuild canvas in case it was replaced
+  document.getElementById('sev-wrap').innerHTML='<div class="chart-wrap" style="height:200px"><canvas id="sev-chart"></canvas></div><div id="sev-legend" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:14px"></div>';
+  charts['sev-chart']=new Chart(document.getElementById('sev-chart').getContext('2d'),{
+    type:'doughnut',data:{labels,datasets:[{data:vals,backgroundColor:colors,borderWidth:0,hoverOffset:8}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'65%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.label}: ${c.raw}`}}}}});
+  document.getElementById('sev-legend').innerHTML=labels.map((l,i)=>
+    `<div style="display:flex;align-items:center;gap:7px;font-size:12px"><span style="width:9px;height:9px;border-radius:2px;background:${colors[i]};flex-shrink:0"></span><span style="color:var(--muted2)">${l}</span><strong>${vals[i]}</strong></div>`).join('');
+}
+
+function renderTopRisks(risks) {
+  const tb=document.getElementById('top-risks-body');
+  if(!risks.length){tb.innerHTML='<tr><td class="loading-cell" colspan="4">No open vulnerabilities yet</td></tr>';return;}
+  tb.innerHTML=risks.slice(0,8).map(v=>`<tr>
+    <td><code style="font-size:11px">${esc(v.cveId)}</code></td>
+    <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(v.title)}">${esc(v.title)}</td>
+    <td>${sevBadge(v.severity)}</td><td>${rsBadge(v.riskScore)}</td>
+  </tr>`).join('');
+}
+
+function renderTrendChart(trend) {
+  const labels=trend.labels||[], disc=Object.values(trend.discovered||{}), rem=Object.values(trend.remediated||{});
+  dChart('trend-chart');
+  document.getElementById('trend-wrap').innerHTML='<div class="chart-wrap" style="height:160px"><canvas id="trend-chart"></canvas></div>';
+  charts['trend-chart']=new Chart(document.getElementById('trend-chart').getContext('2d'),{
+    type:'line',
+    data:{labels:labels.map(l=>l.slice(5)),datasets:[
+      {label:'Discovered',data:disc,borderColor:'#ef4444',backgroundColor:'rgba(239,68,68,.1)',tension:.4,fill:true,pointRadius:3},
+      {label:'Remediated',data:rem,borderColor:'#10b981',backgroundColor:'rgba(16,185,129,.1)',tension:.4,fill:true,pointRadius:3}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:'#94a3b8',font:{size:11}}},tooltip:{mode:'index',intersect:false}},
+      scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#475569',font:{size:10}}},
+              y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#475569',stepSize:1},beginAtZero:true}}}});
+}
+
+function renderRiskMap(items) {
+  const tb=document.getElementById('risk-map-body');
+  if(!items.length){tb.innerHTML='<tr><td colspan="8"><div class="empty-state"><span class="ei">🖥️</span><h3>No assets yet</h3><p>Add assets to see risk map</p></div></td></tr>';return;}
+  tb.innerHTML=items.map(a=>`<tr>
+    <td><strong>${esc(a.assetName)}</strong></td>
+    <td>${typeBadge(a.type)}</td><td>${critBar(a.criticality)}</td>
+    <td>${a.openVulns>0?`<span style="color:${a.openVulns>3?'var(--danger)':'var(--warning)'};font-weight:700">${a.openVulns}</span>`:'<span style="color:var(--success)">0 ✓</span>'}</td>
+    <td>${sevBadge(a.topSeverity)}</td><td>${rsBadge(a.maxRiskScore)}</td>
+    <td class="td-muted">${a.lastScanned?a.lastScanned.replace('T',' ').slice(0,16):'—'}</td>
+    <td><button class="btn btn-warning btn-xs" onclick="triggerScan(${a.assetId},'${esc(a.assetName)}')">⚡ Scan</button></td>
+  </tr>`).join('');
+}
+
+function updateBadge(n){ const b=document.getElementById('open-badge'); b.textContent=n; b.style.display=n>0?'':'none'; }
+
+// ─── ASSETS ───────────────────────────────────────────
+async function loadAssets() {
+  document.getElementById('assets-body').innerHTML='<tr><td class="loading-cell" colspan="8"><div class="spinner"></div></td></tr>';
+  try {
+    allAssets=await api('GET','/api/assets')||[];
+    renderAssets(filteredAssets());
+  } catch(e) {
+    document.getElementById('assets-body').innerHTML=`<tr><td class="loading-cell" colspan="8" style="color:var(--danger)">⚠️ ${esc(e.message)} <button class="btn btn-ghost btn-xs" onclick="loadAssets()" style="margin-left:8px">Retry</button></td></tr>`;
+    toast('Failed to load assets: '+e.message,'error');
+  }
+}
+function filteredAssets() {
+  const q=document.getElementById('asset-search').value.toLowerCase();
+  return allAssets.filter(a=>{
+    const mt=assetTypeFilter==='ALL'||a.type===assetTypeFilter;
+    const mq=!q||a.name.toLowerCase().includes(q)||a.address.toLowerCase().includes(q);
+    return mt&&mq;
+  });
+}
+function setAssetFilter(t,btn){ assetTypeFilter=t; document.querySelectorAll('#asset-pills .pill').forEach(p=>p.classList.remove('active')); btn.classList.add('active'); renderAssets(filteredAssets()); }
+function filterAssets(){ renderAssets(filteredAssets()); }
+function renderAssets(assets) {
+  const tb=document.getElementById('assets-body');
+  if(!assets.length){tb.innerHTML='<tr><td colspan="8"><div class="empty-state"><span class="ei">🖥️</span><h3>No assets found</h3><p>Click "+ Add Asset" to get started</p></div></td></tr>';return;}
+  tb.innerHTML=assets.map(a=>{
+    const ov=a.vulnerabilities?a.vulnerabilities.filter(v=>!v.remediated).length:'?';
+    return `<tr>
+      <td><strong>${esc(a.name)}</strong>${a.description?`<div class="td-muted" style="font-size:11px">${esc(a.description.slice(0,50))}</div>`:''}</td>
+      <td>${typeBadge(a.type)}</td>
+      <td class="td-muted" style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(a.address)}">${esc(a.address)}</td>
+      <td>${critBar(a.criticality)}</td>
+      <td><span style="font-weight:600">${ov}</span></td>
+      <td><span class="badge ${a.active?'b-green':'b-red'}">${a.active?'Active':'Inactive'}</span></td>
+      <td class="td-muted">${a.lastScannedAt?a.lastScannedAt.replace('T',' ').slice(0,16):'—'}</td>
+      <td><div class="t-actions">
+        <button class="btn btn-warning btn-xs" title="Scan" onclick="triggerScan(${a.id},'${esc(a.name)}')">⚡</button>
+        <button class="btn btn-ghost btn-xs" title="Edit" onclick="openAssetModal(${a.id})">✏️</button>
+        <button class="btn btn-danger btn-xs" title="Delete" onclick="deleteAsset(${a.id},'${esc(a.name)}')">🗑️</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+function openAssetModal(id) {
+  document.getElementById('m-id').value=id||'';
+  document.getElementById('modal-title').textContent=id?'Edit Asset':'Add Asset';
+  if(id){
+    const a=allAssets.find(x=>x.id===id);
+    if(a){document.getElementById('m-name').value=a.name||'';document.getElementById('m-type').value=a.type||'DOMAIN';document.getElementById('m-addr').value=a.address||'';document.getElementById('m-desc').value=a.description||'';document.getElementById('m-crit').value=a.criticality||3;}
+  } else {
+    document.getElementById('m-name').value='';document.getElementById('m-type').value='DOMAIN';document.getElementById('m-addr').value='';document.getElementById('m-desc').value='';document.getElementById('m-crit').value=3;
+  }
+  document.getElementById('asset-modal').classList.add('open');
+}
+function closeModal(){ document.getElementById('asset-modal').classList.remove('open'); }
+async function saveAsset() {
+  const id=document.getElementById('m-id').value;
+  const payload={name:document.getElementById('m-name').value.trim(),type:document.getElementById('m-type').value,address:document.getElementById('m-addr').value.trim(),description:document.getElementById('m-desc').value.trim(),criticality:parseInt(document.getElementById('m-crit').value),active:true};
+  if(!payload.name||!payload.address){toast('Name and address are required.','error');return;}
+  try {
+    if(id) await api('PUT','/api/assets/'+id,payload); else await api('POST','/api/assets',payload);
+    toast(id?'Asset updated.':'Asset created.','success'); closeModal(); loadAssets();
+  } catch(e){toast('Error: '+e.message,'error');}
+}
+async function deleteAsset(id,name) {
+  if(!confirm(`Delete "${name}"?`))return;
+  try{await api('DELETE','/api/assets/'+id); toast('Asset deleted.','success'); loadAssets();}
+  catch(e){toast('Error: '+e.message,'error');}
+}
+async function triggerScan(id,name) {
+  toast(`Scanning "${name}"…`,'info');
+  try {
+    const vulns=await api('POST','/api/scans/asset/'+id);
+    if(!vulns)return;
+    toast(`✅ Found ${vulns.length} vulnerabilities on "${name}"`, 'success');
+    if(currentSection==='dashboard') loadDashboard();
+    else if(currentSection==='assets') loadAssets();
+    else if(currentSection==='scans') loadFeed();
+    const d=await api('GET','/api/dashboard'); if(d) updateBadge(d.openVulnerabilities||0);
+  } catch(e){toast('Scan failed: '+e.message,'error');}
+}
+
+// ─── SCANS ────────────────────────────────────────────
+async function populateSelect() {
+  const sel=document.getElementById('scan-select');
+  sel.innerHTML='<option value="">Loading...</option>';
+  try{
+    const assets=await api('GET','/api/assets')||[];
+    sel.innerHTML='<option value="">Select asset to scan…</option>';
+    assets.forEach(a=>{const o=document.createElement('option');o.value=a.id;o.textContent=`${a.name} [${a.type}]`;sel.appendChild(o);});
+  }catch{sel.innerHTML='<option>Failed to load</option>';}
+}
+async function scanSelected() {
+  const id=document.getElementById('scan-select').value;
+  if(!id){toast('Select an asset first.','warning');return;}
+  const name=document.querySelector(`#scan-select option[value="${id}"]`)?.textContent||'Asset';
+  const card=document.getElementById('scan-result-card');
+  card.innerHTML=`<div class="scan-pulse"><div class="scan-dots"><span></span><span></span><span></span></div> Scanning "${name}"…</div>`;
+  try{
+    const vulns=await api('POST','/api/scans/asset/'+id);
+    if(!vulns)return;
+    card.innerHTML=`<div style="font-size:14px;font-weight:700;color:var(--success);margin-bottom:12px">✅ Scan Complete — ${vulns.length} vulnerabilities found</div>`
+      +vulns.map(v=>`<div style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px 0;border-bottom:1px solid var(--border)">${sevBadge(v.severity)} <span>${esc(v.title)}</span> ${rsBadge(v.riskScore)}</div>`).join('');
+    toast(`Scan done: ${vulns.length} vulns found`,'success'); loadFeed();
+  }catch(e){card.innerHTML=`<span style="color:var(--danger)">Scan failed: ${esc(e.message)}</span>`;toast('Scan failed: '+e.message,'error');}
+}
+async function batchScan() {
+  const btn=document.getElementById('batch-btn'); btn.textContent='⚡ Scanning…'; btn.disabled=true;
+  const card=document.getElementById('scan-result-card');
+  card.innerHTML=`<div class="scan-pulse"><div class="scan-dots"><span></span><span></span><span></span></div> Batch scanning all active assets…</div>`;
+  try{
+    const r=await api('POST','/api/scans/all');
+    if(!r)return;
+    card.innerHTML=`<div style="font-size:14px;font-weight:700;color:var(--success);margin-bottom:12px">✅ Batch Scan Complete</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center"><div style="font-size:24px;font-weight:800">${r.assetsScanned}</div><div style="font-size:11px;color:var(--muted)">Assets Scanned</div></div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center"><div style="font-size:24px;font-weight:800;color:var(--danger)">${r.vulnerabilitiesFound}</div><div style="font-size:11px;color:var(--muted)">Vulnerabilities Found</div></div>
+      </div>`+(r.assetResults||[]).map(ar=>`<div style="display:flex;justify-content:space-between;font-size:12px;padding:5px 0;border-bottom:1px solid var(--border)"><span>🖥️ ${esc(ar.assetName)}</span><span style="color:var(--warning)">+${ar.found} vulns</span></div>`).join('');
+    toast(`Batch done: ${r.vulnerabilitiesFound} vulns across ${r.assetsScanned} assets`,'success');
+    loadFeed();
+  }catch(e){card.innerHTML=`<span style="color:var(--danger)">Batch scan failed: ${esc(e.message)}</span>`;toast('Batch scan failed: '+e.message,'error');}
+  finally{btn.textContent='⚡ Scan All Active Assets';btn.disabled=false;}
+}
+async function loadFeed() {
+  document.getElementById('feed-body').innerHTML='<tr><td class="loading-cell" colspan="8"><div class="spinner"></div></td></tr>';
+  try{
+    const vulns=await api('GET','/api/scans/open')||[];
+    const tb=document.getElementById('feed-body');
+    if(!vulns.length){tb.innerHTML='<tr><td colspan="8"><div class="empty-state"><span class="ei">✅</span><h3>All clear!</h3><p>No open vulnerabilities. Run a scan.</p></div></td></tr>';return;}
+    tb.innerHTML=vulns.slice(0,50).map(v=>`<tr>
+      <td><code style="font-size:11px">${esc(v.cveId)}</code></td>
+      <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(v.title)}">${esc(v.title)}</td>
+      <td>${sevBadge(v.severity)}</td><td>${fmtCvss(v.cvssScore)}</td>
+      <td class="td-muted">${esc(v.asset?.name||'—')}</td>
+      <td>${rsBadge(v.riskScore)}</td><td class="td-muted">${v.ageInDays}d</td>
+      <td><div class="t-actions">
+        <button class="btn btn-ghost btn-xs" onclick="showPanel(${v.id})">👁️</button>
+        <button class="btn btn-success btn-xs" id="fix-${v.id}" onclick="remediateVuln(${v.id})">✅ Fix</button>
+      </div></td>
+    </tr>`).join('');
+  }catch(e){
+    document.getElementById('feed-body').innerHTML=`<tr><td class="loading-cell" colspan="8" style="color:var(--danger)">⚠️ ${esc(e.message)} <button class="btn btn-ghost btn-xs" onclick="loadFeed()" style="margin-left:8px">Retry</button></td></tr>`;
+    toast('Failed to load feed: '+e.message,'error');
+  }
+}
+
+// ─── VULNERABILITIES ─────────────────────────────────
+async function loadVulns() {
+  document.getElementById('vulns-body').innerHTML='<tr><td class="loading-cell" colspan="9"><div class="spinner"></div></td></tr>';
+  document.getElementById('vuln-count').textContent='Loading…';
+  try{allVulns=await api('GET','/api/scans/open')||[]; renderVulns();}
+  catch(e){
+    document.getElementById('vulns-body').innerHTML=`<tr><td class="loading-cell" colspan="9" style="color:var(--danger)">⚠️ ${esc(e.message)} <button class="btn btn-ghost btn-xs" onclick="loadVulns()" style="margin-left:8px">Retry</button></td></tr>`;
+    toast('Failed to load vulnerabilities: '+e.message,'error');
+  }
+}
+function setSevFilter(sev,btn){sevFilter=sev;document.querySelectorAll('.filter-pills .pill').forEach(p=>p.classList.remove('active'));btn.classList.add('active');renderVulns();}
+function filterVulns(){renderVulns();}
+function renderVulns() {
+  const q=document.getElementById('vuln-search').value.toLowerCase();
+  const filtered=allVulns.filter(v=>{
+    const ms=sevFilter==='ALL'||v.severity===sevFilter;
+    const mq=!q||v.cveId.toLowerCase().includes(q)||v.title.toLowerCase().includes(q)||(v.asset?.name||'').toLowerCase().includes(q);
+    return ms&&mq;
+  });
+  document.getElementById('vuln-count').textContent=`${filtered.length} result${filtered.length!==1?'s':''}`;
+  const tb=document.getElementById('vulns-body');
+  if(!filtered.length){tb.innerHTML='<tr><td class="loading-cell" colspan="9">No vulnerabilities match the filter.</td></tr>';return;}
+  tb.innerHTML=filtered.map(v=>`<tr id="vr-${v.id}">
+    <td><code style="font-size:11px">${esc(v.cveId)}</code></td>
+    <td style="max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(v.title)}">${esc(v.title)}</td>
+    <td>${sevBadge(v.severity)}</td><td>${fmtCvss(v.cvssScore)}</td>
+    <td class="td-muted">${esc(v.asset?.name||'—')}</td>
+    <td>${rsBadge(v.riskScore)}</td><td class="td-muted">${v.ageInDays}d</td>
+    <td><span class="badge b-red">Open</span></td>
+    <td><div class="t-actions">
+      <button class="btn btn-ghost btn-xs" onclick="showPanel(${v.id})">👁️</button>
+      <button class="btn btn-success btn-xs" id="vfix-${v.id}" onclick="remediateVuln(${v.id})">✅ Fix</button>
+    </div></td>
+  </tr>`).join('');
+}
+async function showPanel(id) {
+  let v=allVulns.find(x=>x.id===id);
+  if(!v) try{v=await api('GET','/api/scans/'+id);}catch{return;}
+  if(!v)return;
+  document.getElementById('panel-body').innerHTML=`
+    <div class="panel-field"><label>CVE ID</label><p><code>${esc(v.cveId)}</code></p></div>
+    <div class="panel-field"><label>Title</label><p>${esc(v.title)}</p></div>
+    <div class="panel-field"><label>Severity</label><p>${sevBadge(v.severity)}</p></div>
+    <div class="panel-field"><label>CVSS Score</label><p>${fmtCvss(v.cvssScore)}</p></div>
+    <div class="panel-field"><label>Risk Score</label><p>${rsBadge(v.riskScore)}</p></div>
+    <div class="panel-field"><label>Age</label><p>${v.ageInDays} days</p></div>
+    <div class="panel-field"><label>Asset</label><p>${esc(v.asset?.name||'—')}</p></div>
+    <div class="panel-field"><label>Description</label><p>${esc(v.description||'No description provided.')}</p></div>
+    <div style="margin-top:20px"><button class="btn btn-success" style="width:100%" onclick="remediateVuln(${v.id})">✅ Mark as Remediated</button></div>`;
+  document.getElementById('detail-panel').classList.add('open');
+  document.getElementById('panel-backdrop').style.display='';
+}
+function closePanel(){document.getElementById('detail-panel').classList.remove('open');document.getElementById('panel-backdrop').style.display='none';}
+async function remediateVuln(id) {
+  const btn=document.getElementById('vfix-'+id)||document.getElementById('fix-'+id);
+  if(btn){btn.disabled=true;btn.textContent='…';}
+  try{
+    await api('PATCH','/api/scans/'+id+'/remediate');
+    toast('Vulnerability remediated ✅','success');
+    allVulns=allVulns.filter(v=>v.id!==id);
+    document.getElementById('vr-'+id)?.remove();
+    closePanel();
+    renderVulns();
+    const d=await api('GET','/api/dashboard'); if(d) updateBadge(d.openVulnerabilities||0);
+  }catch(e){if(btn){btn.disabled=false;btn.textContent='✅ Fix';}toast('Error: '+e.message,'error');}
+}
+
+// ─── REPORTS ─────────────────────────────────────────
+async function loadReportPreview() {
+  const area=document.getElementById('report-preview');
+  area.innerHTML='<div style="text-align:center;padding:30px"><div class="spinner"></div></div>';
+  const [dR]=await Promise.allSettled([api('GET','/api/dashboard')]);
+  if(dR.status!=='fulfilled'||!dR.value){area.innerHTML=`<div style="color:var(--danger);padding:16px">⚠️ Failed: ${esc(dR.reason?.message||'API error')}</div>`;return;}
+  const d=dR.value, bd=d.severityBreakdown||{};
+  area.innerHTML=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px">
+    ${ps('Total Assets',d.totalAssets,'var(--primary)')}${ps('Active',d.activeAssets,'var(--cyan)')}
+    ${ps('Open Vulns',d.openVulnerabilities,'var(--danger)')}${ps('Critical',bd.CRITICAL||0,'#ef4444')}
+    ${ps('High',bd.HIGH||0,'var(--orange)')}${ps('Medium',bd.MEDIUM||0,'var(--warning)')}
+    ${ps('Low',bd.LOW||0,'var(--success)')}${ps('Remediated',d.remediatedVulnerabilities,'var(--success)')}
+    ${ps('Rate',(d.remediationRate||0)+'%','var(--success)')}${ps('Avg Risk',d.averageRiskScore,'var(--purple)')}
+    ${ps('Max Risk',d.maxRiskScore,'var(--danger)')}
+  </div><p style="font-size:12px;color:var(--muted);margin-top:14px">📅 Snapshot at ${new Date().toLocaleString()}</p>`;
+}
+function ps(label,val,color){return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px"><div style="font-size:11px;color:var(--muted);margin-bottom:4px">${label}</div><div style="font-size:22px;font-weight:800;color:${color}">${val??'—'}</div></div>`;}
+async function dlJson(){try{const d=await api('GET','/api/reports/json');if(!d)return;dlBlob(new Blob([JSON.stringify(d,null,2)],{type:'application/json'}),'vulnguard-report.json');toast('JSON downloaded.','success');}catch(e){toast('Export failed: '+e.message,'error');}}
+async function dlPdf(){toast('Generating PDF…','info');try{const b=await api('GET','/api/reports/pdf');if(!b)return;dlBlob(b,'vulnguard-report.pdf');toast('PDF downloaded.','success');}catch(e){toast('PDF failed: '+e.message,'error');}}
+async function previewJson(){document.getElementById('json-bg').classList.add('open');document.getElementById('json-pre').textContent='Loading…';try{const d=await api('GET','/api/reports/json');document.getElementById('json-pre').textContent=JSON.stringify(d,null,2);}catch(e){document.getElementById('json-pre').textContent='Error: '+e.message;}}
+
+// ─── HELPERS ─────────────────────────────────────────
+function dChart(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
+function destroyCharts(){Object.keys(charts).forEach(dChart);}
+function sevBadge(sev){const m={CRITICAL:'b-critical',HIGH:'b-high',MEDIUM:'b-medium',LOW:'b-low',INFO:'b-info',NONE:'b-none'};return `<span class="badge ${m[sev]||'b-none'}">${sev||'NONE'}</span>`;}
+function rsBadge(score){const n=parseFloat(score)||0,c=n>=80?'rs-crit':n>=50?'rs-high':n>=20?'rs-med':'rs-low';return `<span class="rs-chip ${c}">${typeof score==='number'?score.toFixed(2):score}</span>`;}
+function typeBadge(type){const m={DOMAIN:'b-blue',IP_ADDRESS:'b-purple',API_ENDPOINT:'b-cyan',CLOUD_RESOURCE:'b-orange',WEB_APPLICATION:'b-green'};return `<span class="badge ${m[type]||'b-none'}">${(type||'').replace(/_/g,' ')}</span>`;}
+function critBar(n){const c=['#10b981','#10b981','#f59e0b','#f97316','#ef4444'];const d=[1,2,3,4,5].map(i=>`<span class="c-dot" style="${i<=n?'background:'+c[n-1]:''}"></span>`).join('');return `<div class="c-bar">${d}<span class="c-n">${n}/5</span></div>`;}
+function fmtCvss(v){return parseFloat(v).toFixed(1);}
+function esc(s){if(!s)return '';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function dlBlob(blob,filename){const url=URL.createObjectURL(blob);Object.assign(document.createElement('a'),{href:url,download:filename}).click();URL.revokeObjectURL(url);}
+function toast(msg,type='info'){const icons={success:'✅',error:'❌',info:'ℹ️',warning:'⚠️'};const el=Object.assign(document.createElement('div'),{className:`toast t-${type}`,innerHTML:`<span>${icons[type]||'ℹ️'}</span><span>${msg}</span>`});document.getElementById('tc').appendChild(el);setTimeout(()=>el.style.animation='tIn .3s ease reverse',3200);setTimeout(()=>el.remove(),3500);}
+</script>
+</body>
+</html>
